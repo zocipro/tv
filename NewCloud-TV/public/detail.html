@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoftCloud TV - 影视详情</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar">
+            <a href="index.html" class="logo">
+                <i class="ri-movie-2-line"></i> SoftCloud TV
+            </a>
+            <div class="nav-links">
+                <a href="index.html">首页</a>
+                <a href="list.html?t=1">电影</a>
+                <a href="list.html?t=2">剧集</a>
+                <a href="list.html?t=3">综艺</a>
+                <a href="list.html?t=4">动漫</a>
+            </div>
+            <div class="search-box">
+                <i class="ri-search-line"></i>
+                <input type="text" placeholder="搜索影视..." onkeydown="if(event.key==='Enter')window.location='search.html?q='+encodeURIComponent(this.value)">
+            </div>
+        </nav>
+
+        <div class="mobile-tabbar">
+            <div class="tabbar-inner">
+                <a href="index.html" class="tab-item"><i class="ri-compass-3-line"></i><span>首页</span></a>
+                <a href="list.html?t=1" class="tab-item"><i class="ri-film-line"></i><span>电影</span></a>
+                <a href="list.html?t=2" class="tab-item"><i class="ri-tv-2-line"></i><span>剧集</span></a>
+                <a href="list.html?t=3" class="tab-item"><i class="ri-disc-line"></i><span>综艺</span></a>
+                <a href="list.html?t=4" class="tab-item"><i class="ri-ghost-line"></i><span>动漫</span></a>
+            </div>
+        </div>
+
+        <div class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+            <i class="ri-arrow-up-line"></i>
+        </div>
+
+        <div class="container">
+            <div class="breadcrumb">
+                <a href="index.html"><i class="ri-home-4-line"></i> 首页</a>
+                <span class="sep">/</span>
+                <a v-if="vod.type_id" :href="'list.html?t=' + vod.type_id">{{ vod.type_name }}</a>
+                <span class="sep" v-if="vod.type_id">/</span>
+                <span class="current">{{ vod.vod_name || '加载中...' }}</span>
+            </div>
+
+            <div class="loading-spinner" v-if="isLoading">加载中...</div>
+
+            <template v-if="!isLoading && vod.vod_id">
+                <!-- 详情头部 -->
+                <div class="detail-hero fade-in">
+                    <div class="detail-poster">
+                        <img v-if="vod.vod_pic" :src="vod.vod_pic" :alt="vod.vod_name">
+                        <div class="detail-poster-bg" v-else></div>
+                    </div>
+                    <div class="detail-body">
+                        <h1 class="detail-title">{{ vod.vod_name }}</h1>
+                        <div class="detail-subtitle">{{ vod.vod_en }}</div>
+                        <div class="detail-rating-row" v-if="score > 0">
+                            <div class="detail-score">{{ score }}</div>
+                            <div>
+                                <div class="detail-stars">
+                                    <i v-for="n in 5" :key="n" :class="n <= Math.round(score/2) ? 'ri-star-fill' : 'ri-star-fill dim'"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-rating-row" v-else-if="vod.vod_name">
+                            <div class="detail-score" style="opacity:.5">暂无评分</div>
+                        </div>
+                        <div class="detail-tags">
+                            <span class="detail-tag">{{ vod.type_name }}</span>
+                            <span class="detail-tag" v-if="vod.vod_year">{{ vod.vod_year }}</span>
+                            <span class="detail-tag" v-if="vod.vod_area">{{ vod.vod_area }}</span>
+                            <span class="detail-tag" v-if="vod.vod_remarks">{{ vod.vod_remarks }}</span>
+                        </div>
+                        <div class="meta-grid">
+                            <div v-if="vod.vod_director"><strong>导演：</strong>{{ vod.vod_director }}</div>
+                            <div v-if="vod.vod_actor"><strong>主演：</strong>{{ vod.vod_actor }}</div>
+                            <div v-if="vod.vod_year"><strong>年份：</strong>{{ vod.vod_year }}</div>
+                            <div v-if="vod.vod_area"><strong>地区：</strong>{{ vod.vod_area }}</div>
+                        </div>
+                        <div class="detail-actions">
+                            <a :href="'play.html?id=' + vod.vod_id + '&ep=0'" class="btn-play">
+                                <i class="ri-play-circle-fill"></i> 立即播放
+                            </a>
+                            <a href="#episodes" class="btn-ghost">
+                                <i class="ri-list-check-2"></i> 选集
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 简介 -->
+                <div class="glass-panel" style="margin-bottom:36px;" v-if="vod.vod_content">
+                    <h3 class="block-title"><i class="ri-file-text-line"></i> 剧情简介</h3>
+                    <div class="synopsis-text" v-html="vod.vod_content"></div>
+                </div>
+
+                <!-- 选集 -->
+                <div id="episodes" style="margin-bottom:48px;" v-if="episodes.length > 0">
+                    <h3 class="block-title"><i class="ri-play-list-2-line"></i> 选集</h3>
+                    <div class="ep-grid">
+                        <a class="ep-btn" v-for="(ep, ei) in episodes" :key="ei"
+                           :href="'play.html?id=' + vod.vod_id + '&ep=' + ei">
+                            {{ ep.name }}
+                        </a>
+                    </div>
+                </div>
+            </template>
+
+            <!-- 猜你喜欢 -->
+            <div class="section" v-if="related.length">
+                <div class="section-header">
+                    <h2 class="section-title">猜你喜欢</h2>
+                </div>
+                <div class="grid fade-in">
+                    <a class="card" v-for="item in related" :key="item.vod_id" :href="'detail.html?id=' + item.vod_id">
+                        <div class="card-poster">
+                            <img v-if="item.vod_pic" :src="item.vod_pic" :alt="item.vod_name" loading="lazy">
+                        </div>
+                        <div class="badge-top-left" v-if="item.vod_remarks">{{ item.vod_remarks }}</div>
+                        <div class="card-overlay">
+                            <div class="play-btn"><i class="ri-play-fill"></i></div>
+                            <div class="card-info">
+                                <div class="card-title">{{ item.vod_name }}</div>
+                                <div class="card-meta"><span>{{ item.type_name }}</span></div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <footer class="site-footer">
+            <div class="footer-brand"><i class="ri-movie-2-line"></i> SoftCloud TV</div>
+            <div class="footer-nav">
+                <a href="index.html">首页</a>
+                <a href="list.html?t=1">电影</a>
+                <a href="list.html?t=2">剧集</a>
+                <a href="list.html?t=3">综艺</a>
+                <a href="list.html?t=4">动漫</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 SoftCloud TV &middot; 仅供学习交流</div>
+        </footer>
+    </div>
+
+    <script>
+    const urlParams = new URLSearchParams(window.location.search)
+    const vodId = parseInt(urlParams.get('id')) || 0
+    if (vodId <= 0) window.location = 'index.html'
+
+    const { createApp } = Vue
+    createApp({
+        data() {
+            return {
+                vodId: vodId,
+                vod: {},
+                episodes: [],
+                related: [],
+                isLoading: true
+            }
+        },
+        computed: {
+            score() {
+                const s = parseFloat(this.vod.vod_douban_score) || 0
+                const v = parseFloat(this.vod.vod_score) || 0
+                return s > 0 ? s : v
+            }
+        },
+        mounted() { this.fetchDetail() },
+        methods: {
+            parseM3u8Source(playFrom, playUrl) {
+                if (!playFrom || !playUrl) return []
+                const froms = playFrom.split('$$$')
+                const urls = playUrl.split('$$$')
+                let m3u8Idx = -1
+                for (let i = 0; i < froms.length; i++) {
+                    if (froms[i].toLowerCase().indexOf('m3u8') !== -1) { m3u8Idx = i; break }
+                }
+                if (m3u8Idx === -1) m3u8Idx = urls.length - 1
+                const raw = (urls[m3u8Idx] || '').trim()
+                if (!raw) return []
+                return raw.split('#').filter(Boolean).map(part => {
+                    const [name, link] = part.split('$', 2)
+                    return { name, url: link || '' }
+                }).filter(e => e.url && e.url.indexOf('.m3u8') !== -1)
+            },
+            async fetchDetail() {
+                try {
+                    const res = await fetch('/api/proxy?do=detail&id=' + this.vodId)
+                    const data = await res.json()
+                    if (data && data.vod_id) {
+                        this.vod = data
+                        this.episodes = this.parseM3u8Source(data.vod_play_from || '', data.vod_play_url || '')
+                        document.title = data.vod_name + ' - SoftCloud TV'
+                        this.fetchRelated(data.type_id)
+                    }
+                } catch(e) {}
+                this.isLoading = false
+            },
+            async fetchRelated(tid) {
+                try {
+                    const res = await fetch('/api/proxy?do=list&tid=' + tid + '&page=1')
+                    const data = await res.json()
+                    this.related = (data.list || []).filter(v => v.vod_id !== this.vodId).slice(0, 12)
+                } catch(e) {}
+            }
+        }
+    }).mount('#app')
+
+    var btt = document.getElementById('backToTop')
+    if (btt) window.addEventListener('scroll', function() {
+        btt.classList.toggle('visible', window.pageYOffset > 400)
+    }, { passive: true })
+    </script>
+</body>
+</html>
