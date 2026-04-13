@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoftCloud TV - 免费沉浸式影视</title>
+    <link rel="stylesheet" href="assets/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body>
+    <div id="app">
+        <nav class="navbar">
+            <a href="index.html" class="logo">
+                <i class="ri-movie-2-line"></i> SoftCloud TV
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="active">首页</a>
+                <a href="list.html?t=1">电影</a>
+                <a href="list.html?t=2">剧集</a>
+                <a href="list.html?t=3">综艺</a>
+                <a href="list.html?t=4">动漫</a>
+            </div>
+            <div class="search-box">
+                <i class="ri-search-line"></i>
+                <input type="text" placeholder="搜索影视..." onkeydown="if(event.key==='Enter')window.location='search.html?q='+encodeURIComponent(this.value)">
+            </div>
+        </nav>
+
+        <div class="mobile-tabbar">
+            <div class="tabbar-inner">
+                <a href="index.html" class="tab-item active"><i class="ri-compass-3-line"></i><span>首页</span></a>
+                <a href="list.html?t=1" class="tab-item"><i class="ri-film-line"></i><span>电影</span></a>
+                <a href="list.html?t=2" class="tab-item"><i class="ri-tv-2-line"></i><span>剧集</span></a>
+                <a href="list.html?t=3" class="tab-item"><i class="ri-disc-line"></i><span>综艺</span></a>
+                <a href="list.html?t=4" class="tab-item"><i class="ri-ghost-line"></i><span>动漫</span></a>
+            </div>
+        </div>
+
+        <div class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+            <i class="ri-arrow-up-line"></i>
+        </div>
+
+        <div class="container">
+            <!-- 顶部分类 -->
+            <div class="categories">
+                <a class="tag active" href="index.html">推荐</a>
+                <template v-if="allClasses.length">
+                    <a class="tag" v-for="cat in allClasses" :key="cat.type_id" :href="'list.html?t=' + cat.type_id">{{ cat.type_name }}</a>
+                </template>
+                <template v-else>
+                    <span class="skeleton skeleton-tag" v-for="n in 6" :key="n" style="margin-right:4px"></span>
+                </template>
+            </div>
+
+            <!-- 电影 -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">电影</h2>
+                    <a href="list.html?t=1" class="view-more">全部 <i class="ri-arrow-right-s-line"></i></a>
+                </div>
+                <div class="grid" v-if="loading.movies">
+                    <div class="skeleton skeleton-card" v-for="n in 6" :key="n"></div>
+                </div>
+                <div class="grid fade-in" v-else>
+                    <a class="card" v-for="item in movies" :key="item.vod_id" :href="'detail.html?id=' + item.vod_id">
+                        <div class="card-poster">
+                            <img v-if="item.vod_pic" :src="item.vod_pic" :alt="item.vod_name" loading="lazy">
+                        </div>
+                        <div class="badge-top-left" v-if="item.vod_remarks">{{ item.vod_remarks }}</div>
+                        <div class="card-overlay">
+                            <div class="play-btn"><i class="ri-play-fill"></i></div>
+                            <div class="card-info">
+                                <div class="card-title">{{ item.vod_name }}</div>
+                                <div class="card-meta"><span>{{ item.type_name }}</span></div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 连续剧 -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">剧集</h2>
+                    <a href="list.html?t=2" class="view-more">全部 <i class="ri-arrow-right-s-line"></i></a>
+                </div>
+                <div class="grid" v-if="loading.series">
+                    <div class="skeleton skeleton-card" v-for="n in 6" :key="n"></div>
+                </div>
+                <div class="grid fade-in" v-else>
+                    <a class="card" v-for="item in series" :key="item.vod_id" :href="'detail.html?id=' + item.vod_id">
+                        <div class="card-poster">
+                            <img v-if="item.vod_pic" :src="item.vod_pic" :alt="item.vod_name" loading="lazy">
+                        </div>
+                        <div class="badge-top-left" v-if="item.vod_remarks">{{ item.vod_remarks }}</div>
+                        <div class="card-overlay">
+                            <div class="play-btn"><i class="ri-play-fill"></i></div>
+                            <div class="card-info">
+                                <div class="card-title">{{ item.vod_name }}</div>
+                                <div class="card-meta"><span>{{ item.type_name }}</span></div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- 动漫 -->
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">动漫</h2>
+                    <a href="list.html?t=4" class="view-more">全部 <i class="ri-arrow-right-s-line"></i></a>
+                </div>
+                <div class="grid" v-if="loading.anime">
+                    <div class="skeleton skeleton-card" v-for="n in 6" :key="n"></div>
+                </div>
+                <div class="grid fade-in" v-else>
+                    <a class="card" v-for="item in anime" :key="item.vod_id" :href="'detail.html?id=' + item.vod_id">
+                        <div class="card-poster">
+                            <img v-if="item.vod_pic" :src="item.vod_pic" :alt="item.vod_name" loading="lazy">
+                        </div>
+                        <div class="badge-top-left" v-if="item.vod_remarks">{{ item.vod_remarks }}</div>
+                        <div class="card-overlay">
+                            <div class="play-btn"><i class="ri-play-fill"></i></div>
+                            <div class="card-info">
+                                <div class="card-title">{{ item.vod_name }}</div>
+                                <div class="card-meta"><span>{{ item.type_name }}</span></div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <footer class="site-footer">
+            <div class="footer-brand"><i class="ri-movie-2-line"></i> SoftCloud TV</div>
+            <div class="footer-nav">
+                <a href="index.html">首页</a>
+                <a href="list.html?t=1">电影</a>
+                <a href="list.html?t=2">剧集</a>
+                <a href="list.html?t=3">综艺</a>
+                <a href="list.html?t=4">动漫</a>
+            </div>
+            <div class="footer-copy">&copy; 2026 SoftCloud TV &middot; 仅供学习交流</div>
+        </footer>
+    </div>
+
+    <script>
+    const { createApp } = Vue
+    createApp({
+        data() {
+            return {
+                allClasses: [],
+                movies: [],
+                series: [],
+                anime: [],
+                loading: { movies: true, series: true, anime: true }
+            }
+        },
+        mounted() { this.fetchHome() },
+        methods: {
+            async fetchHome() {
+                try {
+                    const res = await fetch('/api/proxy?do=home')
+                    const data = await res.json()
+                    this.allClasses = data.classes || []
+                    this.movies = data.movies || []
+                    this.series = data.series || []
+                    this.anime  = data.anime  || []
+                } catch(e) {}
+                this.loading.movies = false
+                this.loading.series = false
+                this.loading.anime  = false
+            }
+        }
+    }).mount('#app')
+
+    // Back to top
+    var btt = document.getElementById('backToTop')
+    if (btt) window.addEventListener('scroll', function() {
+        btt.classList.toggle('visible', window.pageYOffset > 400)
+    }, { passive: true })
+    </script>
+</body>
+</html>
