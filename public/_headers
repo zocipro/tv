@@ -1,5 +1,13 @@
-/index.html
-  Cache-Control: no-cache
-
+# HTML 页面：每次访问回源验证，保证部署后立刻生效
+# 未修改时服务器返回 304，基本不占流量
 /*.html
   Cache-Control: no-cache
+
+# API 接口：不缓存，确保数据实时
+/api/*
+  Cache-Control: no-store
+
+# 静态资源（CSS/JS/图片）：由于资源没有版本哈希，
+# 用 1 小时短缓存 + ETag 强制验证，既快又不会长时间看到旧版本
+/assets/*
+  Cache-Control: public, max-age=3600, must-revalidate
