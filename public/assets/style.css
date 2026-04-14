@@ -272,11 +272,9 @@ button { font: inherit; cursor: pointer; border: none; background: none; color: 
     flex-direction: column;
     justify-content: flex-end;
     padding: 12px;
-    opacity: 0;
+    opacity: 1;
     transition: opacity 0.3s ease;
 }
-
-.card:hover .card-overlay { opacity: 1; }
 
 .play-btn {
     position: absolute;
