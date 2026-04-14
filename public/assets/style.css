@@ -34,9 +34,6 @@
 /* ===== Reset ===== */
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* Hide Vue templates until mounted (prevents {{ }} flash on navigation) */
-[v-cloak] { display: none !important; }
-
 html {
     font-family: var(--font-sans);
     -webkit-tap-highlight-color: transparent;
