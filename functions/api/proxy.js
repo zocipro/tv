@@ -43,21 +43,39 @@ async function fetchHome() {
     if (subIds[pid]) subIds[pid].push(parseInt(c.type_id));
   }
 
+  // 优先用豆瓣评分排序，上游未返回时回退到站内评分
+  const scoreOf = (v) => {
+    const db = parseFloat(v?.vod_douban_score);
+    if (!isNaN(db) && db > 0) return db;
+    const sc = parseFloat(v?.vod_score);
+    if (!isNaN(sc) && sc > 0) return sc;
+    return 0;
+  };
+
   async function homeFetch(subList, limit = 12) {
     if (!subList.length) return [];
-    const perSub = Math.ceil(limit / Math.min(2, subList.length));
-    let allIds = [];
-    const fetches = subList.slice(0, 2).map(async (stid) => {
-      const ld = await apiGet({ ac: 'list', t: stid, page: 1 });
-      if (ld?.list) return ld.list.slice(0, perSub).map((v) => v.vod_id);
-      return [];
+    // 扩大候选池：取前 4 个子分类，各拉一页详情（直接带评分字段）
+    const fetches = subList.slice(0, 4).map(async (stid) => {
+      const d = await apiGet({ ac: 'detail', t: stid, pg: 1 });
+      return d?.list || [];
     });
     const results = await Promise.all(fetches);
-    for (const ids of results) allIds.push(...ids);
-    allIds = [...new Set(allIds)].slice(0, limit);
-    if (!allIds.length) return [];
-    const dd = await apiGet({ ac: 'detail', ids: allIds.join(',') });
-    return dd?.list || [];
+
+    // 合并去重
+    const seen = new Set();
+    const all = [];
+    for (const list of results) {
+      for (const v of list) {
+        if (!v?.vod_id || seen.has(v.vod_id)) continue;
+        seen.add(v.vod_id);
+        all.push(v);
+      }
+    }
+
+    // 按豆瓣评分降序；优先取评分 >= 6 的，不够时放宽到全部
+    all.sort((a, b) => scoreOf(b) - scoreOf(a));
+    const good = all.filter((v) => scoreOf(v) >= 6);
+    return (good.length >= limit ? good : all).slice(0, limit);
   }
 
   const [movies, series, anime] = await Promise.all([
