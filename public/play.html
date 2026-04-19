@@ -319,12 +319,19 @@
             document.addEventListener('keydown', this.onKeydown)
             document.addEventListener('click', this.closeMenus)
             document.addEventListener('fullscreenchange', this.onFullscreenChange)
+            document.addEventListener('webkitfullscreenchange', this.onFullscreenChange)
         },
         beforeUnmount() {
             if (this.hls) this.hls.destroy()
             document.removeEventListener('keydown', this.onKeydown)
             document.removeEventListener('click', this.closeMenus)
             document.removeEventListener('fullscreenchange', this.onFullscreenChange)
+            document.removeEventListener('webkitfullscreenchange', this.onFullscreenChange)
+            const v = this.$refs.videoEl
+            if (v) {
+                v.removeEventListener('webkitbeginfullscreen', this.onIosEnterFullscreen)
+                v.removeEventListener('webkitendfullscreen', this.onIosExitFullscreen)
+            }
         },
         methods: {
             parseM3u8Source(playFrom, playUrl) {
@@ -498,12 +505,39 @@
 
             toggleFullscreen() {
                 const wrap = this.$refs.playerWrap
+                const video = this.$refs.videoEl
                 if (!wrap) return
-                if (document.fullscreenElement) document.exitFullscreen()
-                else wrap.requestFullscreen().catch(() => {})
+                const fsEl = document.fullscreenElement || document.webkitFullscreenElement
+                if (fsEl) {
+                    const exit = document.exitFullscreen || document.webkitExitFullscreen
+                    if (exit) exit.call(document)
+                    return
+                }
+                const req = wrap.requestFullscreen || wrap.webkitRequestFullscreen
+                if (req) {
+                    const p = req.call(wrap)
+                    if (p && p.catch) p.catch(() => this.enterIosVideoFullscreen(video))
+                } else {
+                    this.enterIosVideoFullscreen(video)
+                }
+            },
+            enterIosVideoFullscreen(video) {
+                if (!video) return
+                if (typeof video.webkitEnterFullscreen === 'function') {
+                    video.addEventListener('webkitbeginfullscreen', this.onIosEnterFullscreen, { once: true })
+                    video.addEventListener('webkitendfullscreen', this.onIosExitFullscreen, { once: true })
+                    try { video.webkitEnterFullscreen() } catch(e) {}
+                }
+            },
+            onIosEnterFullscreen() { this.isFullscreen = true },
+            onIosExitFullscreen() {
+                this.isFullscreen = false
+                this.fitMode = 'contain'
+                this.isPortrait = false
             },
             onFullscreenChange() {
-                this.isFullscreen = !!document.fullscreenElement
+                const fsEl = document.fullscreenElement || document.webkitFullscreenElement
+                this.isFullscreen = !!fsEl
                 if (!this.isFullscreen) {
                     this.fitMode = 'contain'
                     this.isPortrait = false
