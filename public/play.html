@@ -278,6 +278,7 @@
                 _wasLongPress: false,
                 _savedRate: 1,
                 isMobile: ('ontouchstart' in window),
+                isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
                 _controlsHover: false
             }
         },
@@ -511,6 +512,14 @@
                 if (fsEl) {
                     const exit = document.exitFullscreen || document.webkitExitFullscreen
                     if (exit) exit.call(document)
+                    return
+                }
+                if (video && video.webkitDisplayingFullscreen) {
+                    try { video.webkitExitFullscreen() } catch(e) {}
+                    return
+                }
+                if (this.isIOS && video && typeof video.webkitEnterFullscreen === 'function') {
+                    this.enterIosVideoFullscreen(video)
                     return
                 }
                 const req = wrap.requestFullscreen || wrap.webkitRequestFullscreen
