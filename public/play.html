@@ -538,11 +538,27 @@
             onFullscreenChange() {
                 const fsEl = document.fullscreenElement || document.webkitFullscreenElement
                 this.isFullscreen = !!fsEl
-                if (!this.isFullscreen) {
+                if (this.isFullscreen) {
+                    this.autoLockOrientation()
+                } else {
                     this.fitMode = 'contain'
                     this.isPortrait = false
                     try { screen.orientation.unlock() } catch(e) {}
                 }
+            },
+            autoLockOrientation() {
+                if (!this.isMobile) return
+                const v = this.$refs.videoEl
+                if (!v || !screen.orientation || !screen.orientation.lock) return
+                const apply = () => {
+                    const w = v.videoWidth, h = v.videoHeight
+                    if (!w || !h) return
+                    const landscape = w >= h
+                    this.isPortrait = !landscape
+                    try { screen.orientation.lock(landscape ? 'landscape' : 'portrait').catch(() => {}) } catch(e) {}
+                }
+                if (v.videoWidth && v.videoHeight) apply()
+                else v.addEventListener('loadedmetadata', apply, { once: true })
             },
             setFitMode(mode) { this.fitMode = mode; this.activeMenu = null },
             toggleOrientation() {
